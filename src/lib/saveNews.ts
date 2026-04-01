@@ -7,7 +7,7 @@ export async function saveNewArticles(incoming: NewsArticle[]): Promise<number> 
 
     const { data: existing, error: fetchError } = await supabase
         .from("news_articles")
-        .select("title")
+        .select("description")
         .gte("published", since);
 
     if (fetchError) throw new Error(`Supabase fetch failed: ${fetchError.message}`);
