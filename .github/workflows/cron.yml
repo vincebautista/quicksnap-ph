@@ -1,0 +1,15 @@
+name: Hourly Cron Trigger
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping_vercel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit Vercel Endpoint
+        run: |
+          curl -X GET "https://quicksnap-ph.vercel.app/api/cron" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
