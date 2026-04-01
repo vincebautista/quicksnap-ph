@@ -1,6 +1,6 @@
 // app/api/cron/fetch-news/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { saveNewArticles } from "@/lib/saveNews";
+import { saveNewArticles } from "@/lib/articles";
 import { NewsArticle } from "@/types/news";
 
 export async function GET(req: NextRequest) {
