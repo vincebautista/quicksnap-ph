@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { fetchAllNews } from "@/lib/news";
 import Image from "next/image";
 import { NewsArticle } from "@/types/news";
@@ -5,8 +6,9 @@ import { NewsArticle } from "@/types/news";
 type NewsData = Record<string, NewsArticle[]>;
 
 export default async function QuickSnapDashboard() {
-  const allNews: NewsData = (await fetchAllNews()) ?? {};
+  await connection();
 
+  const allNews: NewsData = (await fetchAllNews()) ?? {};
   const categories = Object.keys(allNews);
 
   if (categories.length === 0) {
