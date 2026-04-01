@@ -11,5 +11,5 @@ jobs:
     steps:
       - name: Hit Vercel Endpoint
         run: |
-          curl -X GET "https://quicksnap-ph.vercel.app/api/cron/fetch-news" \
+          curl -X GET "https://quicksnap-ph.vercel.app/api/cron/fetchNews" \
           -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

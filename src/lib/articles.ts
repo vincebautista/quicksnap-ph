@@ -28,6 +28,7 @@ export async function saveNewArticles(incoming: NewsArticle[]): Promise<number> 
                 language: a.language,
                 category: a.category,
                 published: new Date(a.published).toISOString(),
+                gemini_score: null,
             })),
             { onConflict: "id" }
         );
