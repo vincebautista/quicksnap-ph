@@ -14,5 +14,5 @@ jobs:
     steps:
       - name: Hit Scrape Endpoint
         run: |
-          curl -X GET "https://quicksnap-ph.vercel.app/api/cron/scrapeTopAricles" \
+          curl -X GET "https://quicksnap-ph.vercel.app/api/cron/scrapeTopAricle" \
           -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
