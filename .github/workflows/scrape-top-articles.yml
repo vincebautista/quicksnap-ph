@@ -1,0 +1,18 @@
+name: Scrape Top Articles Cron
+
+on:
+  schedule:
+    - cron: '30 22 * * *'
+    - cron: '30 3 * * *' 
+    - cron: '30 9 * * *'
+    - cron: '30 13 * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape_articles:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit Scrape Endpoint
+        run: |
+          curl -X GET "https://quicksnap-ph.vercel.app/api/cron/scrapeTopAricles" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
