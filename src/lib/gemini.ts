@@ -73,7 +73,7 @@ async function scoreArticles(
     return parseGeminiResponse(text);
 }
 
-const BATCH_SIZE = 10;
+const BATCH_SIZE = 5;
 
 export async function scoreUnscored(): Promise<number> {
     const { data: unscored, error: fetchError } = await supabase
