@@ -36,7 +36,7 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     "src/app/api/cron/scrapeTopArticle"
-  ],
+, "src/app/api/cron/scrapeTopArticle"  ],
   "exclude": [
     "node_modules"
   ]
