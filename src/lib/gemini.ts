@@ -129,7 +129,7 @@ Return STRICT JSON only, no markdown, no extra text:
 Title: ${title}
 
 Article:
-${full_content.slice(0, 3000)}`;
+${full_content}`;
 }
 
 export async function generateTagalogContent(
