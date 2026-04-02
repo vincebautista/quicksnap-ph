@@ -79,27 +79,27 @@ export async function fetchAndScrapeTopArticles(targetCount = 5) {
         offset += FETCH_BATCH_SIZE;
     }
 
-    await Promise.all(
-        successfulResults.map(async (article) => {
-            const tagalog = await generateTagalogContent(
-                article.title as string,
-                article.full_content!
-            );
+    for (const article of successfulResults) {
+        const tagalog = await generateTagalogContent(
+            article.title as string,
+            article.full_content!
+        );
 
-            if (tagalog) {
-                article.tagalog_headline = tagalog.headline;
-                article.tagalog_summary = tagalog.summary;
+        if (tagalog) {
+            article.tagalog_headline = tagalog.headline;
+            article.tagalog_summary = tagalog.summary;
 
-                await supabase
-                    .from("news_articles")
-                    .update({
-                        tagalog_headline: tagalog.headline,
-                        tagalog_summary: tagalog.summary,
-                    })
-                    .eq("id", article.id);
-            }
-        })
-    );
+            await supabase
+                .from("news_articles")
+                .update({
+                    tagalog_headline: tagalog.headline,
+                    tagalog_summary: tagalog.summary,
+                })
+                .eq("id", article.id);
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
 
     return successfulResults;
 }
