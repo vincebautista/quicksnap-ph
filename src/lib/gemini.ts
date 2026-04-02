@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { NewsArticle } from "@/types/news";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY}`;
 
 // ─── Scoring ────────────────────────────────────────────────────────────────
 
@@ -137,12 +137,30 @@ export async function generateTagalogContent(
     full_content: string
 ): Promise<TagalogContent | null> {
     try {
-        const text = await callGemini(buildTagalogPrompt(title, full_content), 1024);
+        console.log("[gemini] generateTagalogContent called");
+        console.log("[gemini] title:", title);
+        console.log("[gemini] full_content length:", full_content.length);
+
+        const prompt = buildTagalogPrompt(title, full_content);
+        console.log("[gemini] prompt length:", prompt.length);
+
+        const text = await callGemini(prompt, 1024);
+        console.log("[gemini] raw response:", text);
+
         const cleaned = text.replace(/```json|```/g, "").trim();
+        console.log("[gemini] cleaned response:", cleaned);
+
         const parsed = JSON.parse(cleaned) as TagalogContent;
-        if (!parsed.headline || !parsed.summary) return null;
+        console.log("[gemini] parsed:", parsed);
+
+        if (!parsed.headline || !parsed.summary) {
+            console.log("[gemini] missing headline or summary — returning null");
+            return null;
+        }
+
         return parsed;
-    } catch {
+    } catch (error) {
+        console.error("[gemini] generateTagalogContent error:", error);
         return null;
     }
 }

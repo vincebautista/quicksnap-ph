@@ -9,7 +9,9 @@ interface ScrapedArticle {
     gemini_score: number;
     published: string;
     full_content: string | null;
-    success: boolean;
+    tagalog_headline: string | null;
+    tagalog_summary: string | null;
+    scrape_failed: boolean;
 }
 
 export default function TestScrapePage() {
@@ -26,9 +28,7 @@ export default function TestScrapePage() {
         try {
             const res = await fetch("/api/testScrape");
             const data = await res.json();
-
             if (!res.ok) throw new Error(data.error);
-
             setArticles(data.articles);
         } catch (err) {
             setError((err as Error).message);
@@ -41,15 +41,13 @@ export default function TestScrapePage() {
         <div className="min-h-screen bg-gray-950 text-gray-100 p-8">
             <div className="max-w-4xl mx-auto">
 
-                {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-2xl font-bold text-white mb-1">Scraper Test</h1>
                     <p className="text-gray-400 text-sm">
-                        Fetches top 5 unposted articles by score and scrapes their full content.
+                        Fetches top 5 unposted articles by score and scrapes their full content. Nothing is saved to the database.
                     </p>
                 </div>
 
-                {/* Button */}
                 <button
                     onClick={handleScrape}
                     disabled={loading}
@@ -58,26 +56,21 @@ export default function TestScrapePage() {
                     {loading ? "Scraping..." : "Scrape Top 5 Articles"}
                 </button>
 
-                {/* Error */}
                 {error && (
                     <div className="mb-6 p-4 bg-red-950 border border-red-800 rounded-lg text-red-300 text-sm">
                         {error}
                     </div>
                 )}
 
-                {/* No results */}
                 {!loading && articles.length === 0 && !error && (
                     <p className="text-gray-500 text-sm">No articles scraped yet. Click the button above.</p>
                 )}
 
-                {/* Results */}
                 <div className="space-y-4">
                     {articles.map((article, index) => (
-                        <div
-                            key={article.id}
-                            className="border border-gray-800 rounded-lg overflow-hidden"
-                        >
-                            {/* Article header */}
+                        <div key={article.id} className="border border-gray-800 rounded-lg overflow-hidden">
+
+                            {/* Header */}
                             <div className="p-4 bg-gray-900">
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex items-start gap-3">
@@ -112,27 +105,39 @@ export default function TestScrapePage() {
                                         </div>
                                     </div>
 
-                                    {/* Status badge */}
-                                    <span
-                                        className={`shrink-0 text-xs px-2 py-1 rounded-full font-medium ${article.success
+                                    <span className={`shrink-0 text-xs px-2 py-1 rounded-full font-medium ${!article.scrape_failed
                                             ? "bg-green-950 text-green-400 border border-green-800"
                                             : "bg-red-950 text-red-400 border border-red-800"
-                                            }`}
-                                    >
-                                        {article.success ? "Scraped" : "Failed"}
+                                        }`}>
+                                        {!article.scrape_failed ? "Scraped" : "Failed"}
                                     </span>
                                 </div>
                             </div>
 
-                            {article.success && article.full_content && (
+                            {/* Tagalog content */}
+                            {!article.scrape_failed && (article.tagalog_headline || article.tagalog_summary) && (
+                                <div className="border-t border-gray-800 px-4 py-3 bg-gray-900/50 space-y-1">
+                                    {article.tagalog_headline && (
+                                        <p className="text-yellow-300 text-sm font-medium">
+                                            {article.tagalog_headline}
+                                        </p>
+                                    )}
+                                    {article.tagalog_summary && (
+                                        <p className="text-gray-300 text-xs leading-relaxed">
+                                            {article.tagalog_summary}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Full content toggle */}
+                            {!article.scrape_failed && article.full_content && (
                                 <div className="border-t border-gray-800">
                                     <button
-                                        onClick={() =>
-                                            setExpanded(expanded === article.id ? null : article.id)
-                                        }
+                                        onClick={() => setExpanded(expanded === article.id ? null : article.id)}
                                         className="w-full px-4 py-2 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors text-left"
                                     >
-                                        {expanded === article.id ? "▲ Hide content" : "▼ Show full content"}
+                                        {expanded === article.id ? "▲ Hide full content" : "▼ Show full content"}
                                     </button>
 
                                     {expanded === article.id && (
@@ -145,7 +150,8 @@ export default function TestScrapePage() {
                                 </div>
                             )}
 
-                            {!article.success && (
+                            {/* Failed message */}
+                            {article.scrape_failed && (
                                 <div className="border-t border-gray-800 px-4 py-3 bg-gray-950">
                                     <p className="text-red-400 text-xs">
                                         Could not extract content from this URL. The site may be blocking scrapers.
