@@ -1,3 +1,6 @@
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
 import { fetchAndScrapeTopArticles } from "@/lib/topArticles";
 
 export async function GET(request: Request) {
