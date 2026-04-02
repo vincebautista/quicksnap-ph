@@ -1,6 +1,3 @@
-import { JSDOM } from "jsdom";
-import { Readability } from "@mozilla/readability";
-
 function cleanContent(text: string): string {
     return text
         .split("\n")
@@ -29,6 +26,11 @@ export async function scrapeFullContent(url: string): Promise<string | null> {
         if (!response.ok) return null
 
         const html = await response.text()
+
+        // Dynamic imports to avoid ESM bundling issues on Vercel
+        const { JSDOM } = await import("jsdom")
+        const { Readability } = await import("@mozilla/readability")
+
         const dom = new JSDOM(html, { url })
         const reader = new Readability(dom.window.document)
         const article = reader.parse()
