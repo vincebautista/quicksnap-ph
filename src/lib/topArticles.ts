@@ -47,7 +47,7 @@ export async function fetchAndScrapeTopArticles(targetCount = 5) {
                 tagalog_summary: null,
                 scrape_failed: full_content === null,
             });
-            await new Promise((resolve) => setTimeout(resolve, 5000));
+            await new Promise((resolve) => setTimeout(resolve, 500));
         }
 
         const failed = batchResults.filter((a) => a.scrape_failed);
