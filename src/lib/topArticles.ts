@@ -37,18 +37,18 @@ export async function fetchAndScrapeTopArticles(targetCount = 5) {
         if (error) throw new Error(`Fetch failed: ${error.message}`);
         if (!articles || articles.length === 0) break;
 
-        const batchResults = [];
-        for (const article of articles) {
-            const full_content = await scrapeFullContent(article.url);
-            batchResults.push({
-                ...article,
-                full_content,
-                tagalog_headline: null,
-                tagalog_summary: null,
-                scrape_failed: full_content === null,
-            });
-            await new Promise((resolve) => setTimeout(resolve, 500));
-        }
+        const batchResults = await Promise.all(
+            articles.map(async (article) => {
+                const full_content = await scrapeFullContent(article.url);
+                return {
+                    ...article,
+                    full_content,
+                    tagalog_headline: null,
+                    tagalog_summary: null,
+                    scrape_failed: full_content === null,
+                };
+            })
+        );
 
         const failed = batchResults.filter((a) => a.scrape_failed);
         const succeeded = batchResults.filter((a) => !a.scrape_failed);
