@@ -16,29 +16,34 @@ function cleanContent(text: string): string {
 
 export async function scrapeFullContent(url: string): Promise<string | null> {
     try {
+        console.log("[scraper] fetching:", url);
         const response = await fetch(url, {
             headers: {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             },
             signal: AbortSignal.timeout(10000),
-        })
+        });
 
-        if (!response.ok) return null
+        console.log("[scraper] response status:", response.status);
+        if (!response.ok) return null;
 
-        const html = await response.text()
+        const html = await response.text();
+        console.log("[scraper] html length:", html.length);
 
-        // Dynamic imports to avoid ESM bundling issues on Vercel
-        const { JSDOM } = await import("jsdom")
-        const { Readability } = await import("@mozilla/readability")
+        const { JSDOM } = await import("jsdom");
+        const { Readability } = await import("@mozilla/readability");
 
-        const dom = new JSDOM(html, { url })
-        const reader = new Readability(dom.window.document)
-        const article = reader.parse()
+        const dom = new JSDOM(html, { url });
+        const reader = new Readability(dom.window.document);
+        const article = reader.parse();
 
-        if (!article?.textContent) return null
+        console.log("[scraper] parsed article:", article?.title ?? "null");
 
-        return cleanContent(article.textContent)
-    } catch {
-        return null
+        if (!article?.textContent) return null;
+
+        return cleanContent(article.textContent);
+    } catch (error) {
+        console.error("[scraper] error for", url, ":", error);
+        return null;
     }
 }
