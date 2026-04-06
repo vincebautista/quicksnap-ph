@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Article {
     id: string;
@@ -109,8 +110,8 @@ export default function ArticlesPage() {
                                     key={f}
                                     onClick={() => setFilter(f)}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === f
-                                            ? "bg-blue-600 text-white"
-                                            : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-gray-800 text-gray-300 hover:bg-gray-700"
                                         }`}
                                 >
                                     {f === "all"
@@ -140,10 +141,12 @@ export default function ArticlesPage() {
                                             <div className="flex items-start justify-between gap-4">
                                                 <div className="flex items-start gap-3 flex-1">
                                                     {article.image && (
-                                                        <img
+                                                        <Image
                                                             src={article.image}
                                                             alt={article.title}
-                                                            className="w-16 h-16 rounded object-cover flex-shrink-0"
+                                                            fill // Use fill for fixed-size containers
+                                                            className="rounded object-cover"
+                                                            sizes="64px"
                                                         />
                                                     )}
                                                     <div className="flex-1 min-w-0">
@@ -186,8 +189,8 @@ export default function ArticlesPage() {
                                                     )}
                                                     <span
                                                         className={`shrink-0 text-xs px-2 py-1 rounded-full font-medium ${article.is_posted
-                                                                ? "bg-purple-950 text-purple-400 border border-purple-800"
-                                                                : "bg-green-950 text-green-400 border border-green-800"
+                                                            ? "bg-purple-950 text-purple-400 border border-purple-800"
+                                                            : "bg-green-950 text-green-400 border border-green-800"
                                                             }`}
                                                     >
                                                         {article.is_posted ? "Posted" : "Unposted"}
