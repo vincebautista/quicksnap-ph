@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { saveNewArticles } from "@/lib/articles";
 import { NewsArticle } from "@/types/news";
 
+function isInquirerDomain(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return hostname === "inquirer.net" || hostname.endsWith(".inquirer.net");
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -16,12 +25,15 @@ export async function GET(req: NextRequest) {
 
     const data = await res.json();
 
-    const articles: NewsArticle[] = (data.news ?? []).filter(
-      (a: NewsArticle) =>
+    const articles: NewsArticle[] = (data.news ?? []).filter((a: NewsArticle) => {
+      return (
         a.image?.startsWith("http") &&
         a.title?.trim() &&
-        a.description?.trim()
-    );
+        a.description?.trim() &&
+        a.url?.startsWith("http") &&
+        !isInquirerDomain(a.url)
+      );
+    });
 
     const saved = await saveNewArticles(articles);
 

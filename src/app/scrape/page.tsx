@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 interface ScrapedArticle {
     id: string;
@@ -12,13 +13,15 @@ interface ScrapedArticle {
     tagalog_headline: string | null;
     tagalog_summary: string | null;
     scrape_failed: boolean;
+    is_posted?: boolean;
 }
 
-export default function TestScrapePage() {
+export default function ScrapePage() {
     const [articles, setArticles] = useState<ScrapedArticle[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [expanded, setExpanded] = useState<string | null>(null);
+    const [posting, setPosting] = useState<string | null>(null);
 
     async function handleScrape() {
         setLoading(true);
@@ -26,7 +29,7 @@ export default function TestScrapePage() {
         setArticles([]);
 
         try {
-            const res = await fetch("/api/testScrape");
+            const res = await fetch("/api/scrape");
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             setArticles(data.articles);
@@ -37,15 +40,47 @@ export default function TestScrapePage() {
         }
     }
 
+    async function handlePostArticle(articleId: string) {
+        setPosting(articleId);
+        try {
+            const res = await fetch("/api/post", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ articleId }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+
+            // Update article in state to mark as posted
+            setArticles((prev) =>
+                prev.map((a) =>
+                    a.id === articleId ? { ...a, is_posted: true } : a
+                )
+            );
+        } catch (err) {
+            setError((err as Error).message);
+        } finally {
+            setPosting(null);
+        }
+    }
+
     return (
         <div className="min-h-screen bg-gray-950 text-gray-100 p-8">
             <div className="max-w-4xl mx-auto">
 
-                <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-white mb-1">Scraper Test</h1>
-                    <p className="text-gray-400 text-sm">
-                        Fetches top 5 unposted articles by score and scrapes their full content. Nothing is saved to the database.
-                    </p>
+                <div className="mb-8 flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-white mb-1">Manual Article Scraper</h1>
+                        <p className="text-gray-400 text-sm">
+                            Fetches top unposted articles by score and scrapes their full content with Tagalog translations. Manually post to Facebook with the button for each article.
+                        </p>
+                    </div>
+                    <Link
+                        href="/articles"
+                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                        View All
+                    </Link>
                 </div>
 
                 <button
@@ -105,12 +140,25 @@ export default function TestScrapePage() {
                                         </div>
                                     </div>
 
-                                    <span className={`shrink-0 text-xs px-2 py-1 rounded-full font-medium ${!article.scrape_failed
-                                            ? "bg-green-950 text-green-400 border border-green-800"
-                                            : "bg-red-950 text-red-400 border border-red-800"
-                                        }`}>
-                                        {!article.scrape_failed ? "Scraped" : "Failed"}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        {!article.is_posted && !article.scrape_failed && (
+                                            <button
+                                                onClick={() => handlePostArticle(article.id)}
+                                                disabled={posting === article.id}
+                                                className="shrink-0 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded transition-colors"
+                                            >
+                                                {posting === article.id ? "Posting..." : "Post"}
+                                            </button>
+                                        )}
+                                        <span className={`shrink-0 text-xs px-2 py-1 rounded-full font-medium ${article.is_posted
+                                                ? "bg-purple-950 text-purple-400 border border-purple-800"
+                                                : !article.scrape_failed
+                                                    ? "bg-green-950 text-green-400 border border-green-800"
+                                                    : "bg-red-950 text-red-400 border border-red-800"
+                                            }`}>
+                                            {article.is_posted ? "Posted" : !article.scrape_failed ? "Scraped" : "Failed"}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
