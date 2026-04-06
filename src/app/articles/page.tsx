@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 
 interface Article {
     id: string;
@@ -141,12 +140,10 @@ export default function ArticlesPage() {
                                             <div className="flex items-start justify-between gap-4">
                                                 <div className="flex items-start gap-3 flex-1">
                                                     {article.image && (
-                                                        <Image
+                                                        <img
                                                             src={article.image}
                                                             alt={article.title}
-                                                            fill // Use fill for fixed-size containers
-                                                            className="rounded object-cover"
-                                                            sizes="64px"
+                                                            className="w-16 h-16 rounded object-cover flex-shrink-0"
                                                         />
                                                     )}
                                                     <div className="flex-1 min-w-0">
