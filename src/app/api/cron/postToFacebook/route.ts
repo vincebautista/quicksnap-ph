@@ -1,7 +1,6 @@
 export const runtime = "nodejs";
-export const maxDuration = 300;
 
-import { fetchAndScrapeTopArticles } from "@/lib/topArticles";
+import { postScheduledArticles } from "@/lib/facebook";
 
 export async function GET(request: Request) {
     const authHeader = request.headers.get("Authorization");
@@ -10,10 +9,10 @@ export async function GET(request: Request) {
     }
 
     try {
-        const articles = await fetchAndScrapeTopArticles();
-        return Response.json({ success: true, scraped: articles.length });
+        const posted = await postScheduledArticles();
+        return Response.json({ success: true, posted });
     } catch (error) {
-        console.error("[scrapeTop cron] error:", error);
+        console.error("[postToFacebook cron] error:", error);
         return Response.json(
             { success: false, error: (error as Error).message },
             { status: 500 }
