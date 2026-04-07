@@ -14,6 +14,7 @@ interface Article {
     tagalog_headline: string | null;
     tagalog_summary: string | null;
     is_posted: boolean;
+    scrape_failed: boolean;
 }
 
 export default function ArticlesPage() {
@@ -22,7 +23,7 @@ export default function ArticlesPage() {
     const [error, setError] = useState<string | null>(null);
     const [expanded, setExpanded] = useState<string | null>(null);
     const [posting, setPosting] = useState<string | null>(null);
-    const [filter, setFilter] = useState<"all" | "unposted" | "posted">("unposted");
+    const [filter, setFilter] = useState<"all" | "unposted" | "posted" | "failed">("unposted");
 
     useEffect(() => {
         fetchArticles();
@@ -68,7 +69,8 @@ export default function ArticlesPage() {
     }
 
     const filteredArticles = articles.filter((article) => {
-        if (filter === "unposted") return !article.is_posted;
+        if (filter === "failed") return article.scrape_failed;
+        if (filter === "unposted") return !article.is_posted && !article.scrape_failed;
         if (filter === "posted") return article.is_posted;
         return true;
     });
@@ -104,7 +106,7 @@ export default function ArticlesPage() {
                 ) : (
                     <>
                         <div className="mb-6 flex gap-2">
-                            {(["all", "unposted", "posted"] as const).map((f) => (
+                            {(["all", "unposted", "posted", "failed"] as const).map((f) => (
                                 <button
                                     key={f}
                                     onClick={() => setFilter(f)}
@@ -116,8 +118,10 @@ export default function ArticlesPage() {
                                     {f === "all"
                                         ? "All"
                                         : f === "unposted"
-                                            ? `Unposted (${articles.filter((a) => !a.is_posted).length})`
-                                            : `Posted (${articles.filter((a) => a.is_posted).length})`}
+                                            ? `Unposted (${articles.filter((a) => !a.is_posted && !a.scrape_failed).length})`
+                                            : f === "posted"
+                                                ? `Posted (${articles.filter((a) => a.is_posted).length})`
+                                                : `Failed (${articles.filter((a) => a.scrape_failed).length})`}
                                 </button>
                             ))}
                         </div>
@@ -126,6 +130,7 @@ export default function ArticlesPage() {
                             <p className="text-gray-500 text-sm">
                                 {filter === "unposted" && "No unposted articles. "}
                                 {filter === "posted" && "No posted articles yet. "}
+                                {filter === "failed" && "No failed scrape articles. "}
                                 {articles.length === 0 && 'No articles yet. Click "Scrape New" to get started.'}
                             </p>
                         ) : (
@@ -175,7 +180,7 @@ export default function ArticlesPage() {
                                                 </div>
 
                                                 <div className="flex items-center gap-2 flex-shrink-0">
-                                                    {!article.is_posted && (
+                                                    {!article.is_posted && !article.scrape_failed && (
                                                         <button
                                                             onClick={() => handlePostArticle(article.id)}
                                                             disabled={posting === article.id}
@@ -187,17 +192,19 @@ export default function ArticlesPage() {
                                                     <span
                                                         className={`shrink-0 text-xs px-2 py-1 rounded-full font-medium ${article.is_posted
                                                             ? "bg-purple-950 text-purple-400 border border-purple-800"
-                                                            : "bg-green-950 text-green-400 border border-green-800"
+                                                            : article.scrape_failed
+                                                                ? "bg-red-950 text-red-400 border border-red-800"
+                                                                : "bg-green-950 text-green-400 border border-green-800"
                                                             }`}
                                                     >
-                                                        {article.is_posted ? "Posted" : "Unposted"}
+                                                        {article.is_posted ? "Posted" : article.scrape_failed ? "Scrape Failed" : "Unposted"}
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Tagalog content */}
-                                        {(article.tagalog_headline || article.tagalog_summary) && (
+                                        {!article.scrape_failed && (article.tagalog_headline || article.tagalog_summary) && (
                                             <div className="border-t border-gray-800 px-4 py-3 bg-gray-900/50 space-y-1">
                                                 {article.tagalog_headline && (
                                                     <p className="text-yellow-300 text-sm font-medium">
@@ -213,7 +220,7 @@ export default function ArticlesPage() {
                                         )}
 
                                         {/* Full content toggle */}
-                                        {article.full_content && (
+                                        {!article.scrape_failed && article.full_content && (
                                             <div className="border-t border-gray-800">
                                                 <button
                                                     onClick={() =>
@@ -233,6 +240,14 @@ export default function ArticlesPage() {
                                                         </p>
                                                     </div>
                                                 )}
+                                            </div>
+                                        )}
+
+                                        {article.scrape_failed && (
+                                            <div className="border-t border-gray-800 px-4 py-3 bg-gray-950">
+                                                <p className="text-red-400 text-xs">
+                                                    This article could not be scraped with jsdom + Readability and is flagged for monitoring.
+                                                </p>
                                             </div>
                                         )}
                                     </div>
