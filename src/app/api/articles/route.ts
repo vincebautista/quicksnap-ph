@@ -2,13 +2,12 @@ import { supabase } from "@/lib/supabase";
 
 export async function GET() {
     try {
-        // Fetch all articles that have been scraped (have full_content and tagalog content)
+        // Fetch recent articles including failed scrapes for monitoring.
         const { data: articles, error } = await supabase
             .from("news_articles")
             .select("*")
-            .not("full_content", "is", null)
-            .not("tagalog_headline", "is", null)
-            .order("published", { ascending: false });
+            .order("published", { ascending: false })
+            .limit(200);
 
         if (error) {
             return Response.json({ error: error.message }, { status: 500 });

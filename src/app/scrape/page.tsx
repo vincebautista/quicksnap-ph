@@ -16,8 +16,16 @@ interface ScrapedArticle {
     is_posted?: boolean;
 }
 
+type ScrapeResponse = {
+    success: boolean;
+    articles: ScrapedArticle[];
+    failed: ScrapedArticle[];
+    error?: string;
+};
+
 export default function ScrapePage() {
     const [articles, setArticles] = useState<ScrapedArticle[]>([]);
+    const [failedArticles, setFailedArticles] = useState<ScrapedArticle[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [expanded, setExpanded] = useState<string | null>(null);
@@ -27,12 +35,14 @@ export default function ScrapePage() {
         setLoading(true);
         setError(null);
         setArticles([]);
+        setFailedArticles([]);
 
         try {
             const res = await fetch("/api/scrape");
-            const data = await res.json();
+            const data: ScrapeResponse = await res.json();
             if (!res.ok) throw new Error(data.error);
-            setArticles(data.articles);
+            setArticles(data.articles ?? []);
+            setFailedArticles(data.failed ?? []);
         } catch (err) {
             setError((err as Error).message);
         } finally {
@@ -72,7 +82,7 @@ export default function ScrapePage() {
                     <div>
                         <h1 className="text-2xl font-bold text-white mb-1">Manual Article Scraper</h1>
                         <p className="text-gray-400 text-sm">
-                            Fetches top unposted articles by score and scrapes their full content with Tagalog translations. Manually post to Facebook with the button for each article.
+                            Scrapes the top 5 unposted, not-yet-scraped articles using jsdom + Readability and generates Tagalog content only for successful scrapes.
                         </p>
                     </div>
                     <Link
@@ -88,8 +98,19 @@ export default function ScrapePage() {
                     disabled={loading}
                     className="mb-8 px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white font-medium rounded-lg transition-colors"
                 >
-                    {loading ? "Scraping..." : "Scrape Top 5 Articles"}
+                    {loading ? "Scraping..." : "Scrape Top 5"}
                 </button>
+
+                {!loading && (articles.length > 0 || failedArticles.length > 0) && (
+                    <div className="mb-6 p-4 rounded-lg border border-gray-800 bg-gray-900/60 text-sm text-gray-300 space-y-2">
+                        <p>
+                            Successful: <span className="text-green-400 font-medium">{articles.length}</span> | Failed: <span className="text-red-400 font-medium">{failedArticles.length}</span>
+                        </p>
+                        <p className="text-xs text-gray-400">
+                            Failed items are marked as scrape_failed, so they are not retried in the next top-5 run.
+                        </p>
+                    </div>
+                )}
 
                 {error && (
                     <div className="mb-6 p-4 bg-red-950 border border-red-800 rounded-lg text-red-300 text-sm">
@@ -98,7 +119,7 @@ export default function ScrapePage() {
                 )}
 
                 {!loading && articles.length === 0 && !error && (
-                    <p className="text-gray-500 text-sm">No articles scraped yet. Click the button above.</p>
+                    <p className="text-gray-500 text-sm">No successful scrape results yet. Click the button above.</p>
                 )}
 
                 <div className="space-y-4">
@@ -209,6 +230,30 @@ export default function ScrapePage() {
                         </div>
                     ))}
                 </div>
+
+                {failedArticles.length > 0 && (
+                    <div className="mt-10">
+                        <h2 className="text-lg font-semibold text-white mb-3">Failed To Scrape</h2>
+                        <div className="space-y-3">
+                            {failedArticles.map((article) => (
+                                <div key={article.id} className="border border-red-900/60 rounded-lg p-4 bg-red-950/20">
+                                    <h3 className="text-sm font-medium text-red-200 mb-1">{article.title}</h3>
+                                    <div className="text-xs text-red-300/80 flex items-center gap-3 flex-wrap">
+                                        <a
+                                            href={article.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="underline hover:text-red-200"
+                                        >
+                                            Source ↗
+                                        </a>
+                                        <span>Marked as scrape_failed in database for monitoring.</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

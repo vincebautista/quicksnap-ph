@@ -11,72 +11,64 @@ type ScrapedResult = {
     scrape_failed: boolean;
 } & Record<string, unknown>;
 
-export async function fetchAndScrapeTopArticles(targetCount = 5) {
-    const FETCH_BATCH_SIZE = 15;
-    const successfulResults: ScrapedResult[] = [];
-    let offset = 0;
-    const failedIds: string[] = [];
+type FetchAndScrapeResult = {
+    successfulResults: ScrapedResult[];
+    failedResults: ScrapedResult[];
+};
+export async function fetchAndScrapeTopArticles(targetCount = 5): Promise<FetchAndScrapeResult> {
+    const { data: articles, error } = await supabase
+        .from("news_articles")
+        .select("*")
+        .eq("is_posted", false)
+        .eq("scrape_failed", false)
+        .is("full_content", null)
+        .not("gemini_score", "is", null)
+        .order("gemini_score", { ascending: false })
+        .order("published", { ascending: false })
+        .limit(targetCount);
 
-    while (successfulResults.length < targetCount) {
-        let query = supabase
+    if (error) throw new Error(`Fetch failed: ${error.message}`);
+
+    if (!articles || articles.length === 0) {
+        return {
+            successfulResults: [],
+            failedResults: [],
+        };
+    }
+
+    const batchResults = await Promise.all(
+        articles.map(async (article) => {
+            const full_content = await scrapeFullContent(article.url);
+            return {
+                ...article,
+                full_content,
+                tagalog_headline: null,
+                tagalog_summary: null,
+                scrape_failed: full_content === null,
+            };
+        })
+    );
+
+    const failedResults = batchResults.filter((a) => a.scrape_failed);
+    const successfulResults = batchResults.filter((a) => !a.scrape_failed);
+
+    if (failedResults.length > 0) {
+        const ids = failedResults.map((a) => a.id);
+        await supabase
             .from("news_articles")
-            .select("*")
-            .eq("is_posted", false)
-            .eq("scrape_failed", false)
-            .not("gemini_score", "is", null)
-            .order("gemini_score", { ascending: false })
-            .order("published", { ascending: false })
-            .range(offset, offset + FETCH_BATCH_SIZE - 1);
+            .update({ scrape_failed: true })
+            .in("id", ids);
+    }
 
-        if (failedIds.length > 0) {
-            query = query.not("id", "in", `(${failedIds.join(",")})`);
-        }
-
-        const { data: articles, error } = await query;
-
-        if (error) throw new Error(`Fetch failed: ${error.message}`);
-        if (!articles || articles.length === 0) break;
-
-        const batchResults = await Promise.all(
-            articles.map(async (article) => {
-                const full_content = await scrapeFullContent(article.url);
-                return {
-                    ...article,
-                    full_content,
-                    tagalog_headline: null,
-                    tagalog_summary: null,
-                    scrape_failed: full_content === null,
-                };
-            })
+    if (successfulResults.length > 0) {
+        await Promise.all(
+            successfulResults.map(({ id, full_content }) =>
+                supabase
+                    .from("news_articles")
+                    .update({ full_content })
+                    .eq("id", id)
+            )
         );
-
-        const failed = batchResults.filter((a) => a.scrape_failed);
-        const succeeded = batchResults.filter((a) => !a.scrape_failed);
-
-        if (failed.length > 0) {
-            const ids = failed.map((a) => a.id);
-            failedIds.push(...ids);
-            await supabase
-                .from("news_articles")
-                .update({ scrape_failed: true })
-                .in("id", ids);
-        }
-
-        if (succeeded.length > 0) {
-            await Promise.all(
-                succeeded.map(({ id, full_content }) =>
-                    supabase
-                        .from("news_articles")
-                        .update({ full_content })
-                        .eq("id", id)
-                )
-            );
-        }
-
-        const remaining = targetCount - successfulResults.length;
-        successfulResults.push(...succeeded.slice(0, remaining));
-
-        offset += FETCH_BATCH_SIZE;
     }
 
     for (const article of successfulResults) {
@@ -101,5 +93,8 @@ export async function fetchAndScrapeTopArticles(targetCount = 5) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
-    return successfulResults;
+    return {
+        successfulResults,
+        failedResults,
+    };
 }
