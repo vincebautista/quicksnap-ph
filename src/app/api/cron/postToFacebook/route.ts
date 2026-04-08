@@ -2,12 +2,7 @@ export const runtime = "nodejs";
 
 import { postScheduledArticles } from "@/lib/facebook";
 
-export async function GET(request: Request) {
-    const authHeader = request.headers.get("Authorization");
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+export async function GET() {
     try {
         const posted = await postScheduledArticles();
         return Response.json({ success: true, posted });

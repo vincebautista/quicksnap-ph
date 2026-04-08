@@ -172,10 +172,10 @@ export default function ScrapePage() {
                                             </button>
                                         )}
                                         <span className={`shrink-0 text-xs px-2 py-1 rounded-full font-medium ${article.is_posted
-                                                ? "bg-purple-950 text-purple-400 border border-purple-800"
-                                                : !article.scrape_failed
-                                                    ? "bg-green-950 text-green-400 border border-green-800"
-                                                    : "bg-red-950 text-red-400 border border-red-800"
+                                            ? "bg-purple-950 text-purple-400 border border-purple-800"
+                                            : !article.scrape_failed
+                                                ? "bg-green-950 text-green-400 border border-green-800"
+                                                : "bg-red-950 text-red-400 border border-red-800"
                                             }`}>
                                             {article.is_posted ? "Posted" : !article.scrape_failed ? "Scraped" : "Failed"}
                                         </span>

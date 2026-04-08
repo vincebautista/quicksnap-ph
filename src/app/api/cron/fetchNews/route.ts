@@ -1,5 +1,5 @@
 // app/api/cron/fetch-news/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { saveNewArticles } from "@/lib/articles";
 import { NewsArticle } from "@/types/news";
 
@@ -12,12 +12,7 @@ function isInquirerDomain(url: string): boolean {
   }
 }
 
-export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function GET() {
   try {
     const res = await fetch(
       `https://api.currentsapi.services/v2/latest-news?country=PH&language=en&apiKey=${process.env.CURRENTS_API_KEY}`
