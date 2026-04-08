@@ -36,51 +36,78 @@ export async function fetchAndScrapeTopArticles(targetCount = 5): Promise<FetchA
         };
     }
 
-    const batchResults = await Promise.all(
-        articles.map(async (article) => {
-            const full_content = await scrapeFullContent(article.url);
-            return {
+    const successfulResults: ScrapedResult[] = [];
+    const failedResults: ScrapedResult[] = [];
+
+    for (const article of articles) {
+        let full_content: string | null = null;
+        let retries = 2;
+        let success = false;
+
+        // Step 1: Scrape Content
+        while (retries >= 0 && !success) {
+            try {
+                full_content = await scrapeFullContent(article.url);
+                if (full_content) {
+                    success = true;
+                } else {
+                    throw new Error("Scrape returned null");
+                }
+            } catch (error) {
+                console.error(`[scraper] Attempt failed for ${article.url}, retries left: ${retries}`, error);
+                if (retries > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+                retries--;
+            }
+        }
+
+        if (!success) {
+            console.error(`[scraper] All attempts failed for ${article.url}`);
+            await supabase
+                .from("news_articles")
+                .update({ scrape_failed: true })
+                .eq("id", article.id);
+            
+            failedResults.push({
                 ...article,
-                full_content,
+                full_content: null,
                 tagalog_headline: null,
                 tagalog_summary: null,
-                scrape_failed: full_content === null,
-            };
-        })
-    );
+                scrape_failed: true,
+            });
+            continue;
+        }
 
-    const failedResults = batchResults.filter((a) => a.scrape_failed);
-    const successfulResults = batchResults.filter((a) => !a.scrape_failed);
-
-    if (failedResults.length > 0) {
-        const ids = failedResults.map((a) => a.id);
+        // Save scraped content immediately
         await supabase
             .from("news_articles")
-            .update({ scrape_failed: true })
-            .in("id", ids);
-    }
+            .update({ full_content })
+            .eq("id", article.id);
 
-    if (successfulResults.length > 0) {
-        await Promise.all(
-            successfulResults.map(({ id, full_content }) =>
-                supabase
-                    .from("news_articles")
-                    .update({ full_content })
-                    .eq("id", id)
-            )
-        );
-    }
+        // Step 2: Generate Tagalog Content
+        let tagalog: { headline: string; summary: string } | null = null;
+        retries = 2;
+        success = false;
 
-    for (const article of successfulResults) {
-        const tagalog = await generateTagalogContent(
-            article.title as string,
-            article.full_content!
-        );
+        while (retries >= 0 && !success) {
+            try {
+                tagalog = await generateTagalogContent(article.title as string, full_content!);
+                if (tagalog) {
+                    success = true;
+                } else {
+                    throw new Error("Gemini returned null");
+                }
+            } catch (error) {
+                console.error(`[gemini] Attempt failed for ${article.title}, retries left: ${retries}`, error);
+                if (retries > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+                retries--;
+            }
+        }
 
-        if (tagalog) {
-            article.tagalog_headline = tagalog.headline;
-            article.tagalog_summary = tagalog.summary;
-
+        if (success && tagalog) {
             await supabase
                 .from("news_articles")
                 .update({
@@ -88,9 +115,30 @@ export async function fetchAndScrapeTopArticles(targetCount = 5): Promise<FetchA
                     tagalog_summary: tagalog.summary,
                 })
                 .eq("id", article.id);
+            
+            successfulResults.push({
+                ...article,
+                full_content,
+                tagalog_headline: tagalog.headline,
+                tagalog_summary: tagalog.summary,
+                scrape_failed: false,
+            });
+        } else {
+            // Even if Gemini fails, we count it as partially successful because we got the content
+            // or we could count it as failed depending on requirements. 
+            // The user said "skip failed URLS gracefully", so let's just log it.
+            console.error(`[gemini] Failed to generate Tagalog for ${article.title}`);
+            successfulResults.push({
+                ...article,
+                full_content,
+                tagalog_headline: null,
+                tagalog_summary: null,
+                scrape_failed: false,
+            });
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Delay between articles
+        await new Promise((resolve) => setTimeout(resolve, 3000));
     }
 
     return {

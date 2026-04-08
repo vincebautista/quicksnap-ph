@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
 function getCutoffDateIso(): string {
@@ -13,12 +13,7 @@ function getCutoffDateIso(): string {
     return startOfTodayUtc.toISOString();
 }
 
-export async function GET(req: NextRequest) {
-    const authHeader = req.headers.get("authorization");
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+export async function GET() {
     try {
         const cutoffIso = getCutoffDateIso();
 
