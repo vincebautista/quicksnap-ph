@@ -108,9 +108,9 @@ export async function processArticleImage(
     const horizontalPad = W * 0.06;
     const maxTextWidth = W - horizontalPad * 2;
 
-    // Dynamic font size based on image width, clamped between 28–68px
-    const rawFontSize = Math.round(W * 0.065);
-    const fontSize = Math.max(28, Math.min(68, rawFontSize));
+    // Dynamic font size based on image width, clamped between 16–34px
+    const rawFontSize = Math.round(W * 0.032);
+    const fontSize = Math.max(16, Math.min(34, rawFontSize));
     const lineHeight = fontSize * 1.3;
 
     ctx.font = `bold ${fontSize}px "Arial", sans-serif`;
