@@ -1,5 +1,14 @@
 import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import path from "path";
+import fs from "fs";
+
+// Register font once at module level
+const FONT_PATH = path.join(process.cwd(), "public", "fonts", "Oswald-Bold.ttf");
+if (fs.existsSync(FONT_PATH)) {
+    GlobalFonts.registerFromPath(FONT_PATH, "Oswald");
+} else {
+    console.warn("[imageProcessor] NotoSans-Bold.ttf not found at", FONT_PATH);
+}
 
 const BRAND_COLOR = "#0065eb";
 const BORDER_WIDTH = 8;
@@ -46,10 +55,6 @@ export async function processArticleImage(
     imageUrl: string,
     headline: string
 ): Promise<ProcessedImage> {
-    // Register a bundled fallback font (@napi-rs/canvas includes this)
-    // Only needed if you want a specific font — it has a built-in sans-serif fallback
-    // GlobalFonts.registerFromPath(path.join(process.cwd(), "public", "fonts", "NotoSans-Bold.ttf"), "NotoSans");
-
     // ── 1. Load source image ──────────────────────────────────────────────────
     const sourceBuffer = await fetchImageBuffer(imageUrl);
     const sourceImg = await loadImage(sourceBuffer);
@@ -81,7 +86,9 @@ export async function processArticleImage(
     const fontSize = Math.max(16, Math.min(34, rawFontSize));
     const lineHeight = fontSize * 1.3;
 
-    ctx.font = `bold ${fontSize}px sans-serif`;
+    // Use registered NotoSans if available, fallback to sans-serif
+    const fontFamily = GlobalFonts.has("NotoSans") ? "NotoSans" : "sans-serif";
+    ctx.font = `bold ${fontSize}px "${fontFamily}"`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
@@ -97,9 +104,7 @@ export async function processArticleImage(
 
     // ── 6. Logo watermark ─────────────────────────────────────────────────────
     try {
-        const logoBuffer = await import("fs").then(fs =>
-            fs.promises.readFile(LOGO_PATH)
-        );
+        const logoBuffer = await fs.promises.readFile(LOGO_PATH);
         const logo = await loadImage(logoBuffer);
         const logoX = W - LOGO_SIZE - LOGO_PADDING - BORDER_WIDTH;
         const logoY = LOGO_PADDING + BORDER_WIDTH;
