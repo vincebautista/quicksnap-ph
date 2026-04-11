@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { scrapeFullContentCron } from "@/lib/scraperCron";
 import { generateTagalogContent } from "@/lib/gemini";
+import { postToFacebook } from "@/lib/facebook";
 
 export async function POST(req: Request) {
     const authHeader = req.headers.get("authorization");
@@ -9,6 +10,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Fetch the single best article
     const { data: articles, error } = await supabase
         .from("news_articles")
         .select("*")
@@ -30,7 +32,7 @@ export async function POST(req: Request) {
 
     const article = articles[0];
 
-    // Scrape with retries
+    // ── Step 1: Scrape ────────────────────────────────────────────────────────
     let full_content: string | null = null;
     let retries = 2;
     let success = false;
@@ -38,11 +40,8 @@ export async function POST(req: Request) {
     while (retries >= 0 && !success) {
         try {
             full_content = await scrapeFullContentCron(article.url);
-            if (full_content) {
-                success = true;
-            } else {
-                throw new Error("Scrape returned null");
-            }
+            if (full_content) success = true;
+            else throw new Error("Scrape returned null");
         } catch (err) {
             console.error(`[scraper] Attempt failed for ${article.url}, retries left: ${retries}`, err);
             if (retries > 0) await new Promise(r => setTimeout(r, 2000));
@@ -62,13 +61,12 @@ export async function POST(req: Request) {
         );
     }
 
-    // Save scraped content
     await supabase
         .from("news_articles")
         .update({ full_content })
         .eq("id", article.id);
 
-    // Generate Tagalog content
+    // ── Step 2: Generate Tagalog ──────────────────────────────────────────────
     let tagalog: { headline: string; summary: string } | null = null;
     retries = 2;
     success = false;
@@ -95,10 +93,43 @@ export async function POST(req: Request) {
             .eq("id", article.id);
     }
 
+    // ── Step 3: Post to Facebook ──────────────────────────────────────────────
+    if (!tagalog) {
+        return NextResponse.json({
+            success: true,
+            article_id: article.id,
+            title: article.title,
+            tagalog_generated: false,
+            fb_posted: false,
+            message: "Skipped Facebook post — Tagalog generation failed",
+        });
+    }
+
+    let fb_posted = false;
+    try {
+        await postToFacebook(
+            tagalog.headline,
+            tagalog.summary,
+            article.url as string,
+            article.image as string | null,
+            article.category
+        );
+
+        await supabase
+            .from("news_articles")
+            .update({ is_posted: true })
+            .eq("id", article.id);
+
+        fb_posted = true;
+    } catch (fbErr) {
+        console.error("[facebook] Failed to post:", fbErr);
+    }
+
     return NextResponse.json({
         success: true,
         article_id: article.id,
         title: article.title,
-        tagalog_generated: !!tagalog,
+        tagalog_generated: true,
+        fb_posted,
     });
 }
