@@ -29,7 +29,7 @@ function categoryEmoji(category?: string | string[]): string {
         weather: "⛈️",
         health: "🏥",
         sports: "⚽",
-        technology: "📱",
+        science_technology: "📱",
         entertainment: "🎬",
         world: "🌏",
     };
