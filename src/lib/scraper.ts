@@ -1,3 +1,6 @@
+import { JSDOM, VirtualConsole } from "jsdom";
+import { Readability } from "@mozilla/readability";
+
 function cleanContent(text: string): string {
     return text
         .split("\n")
@@ -16,34 +19,41 @@ function cleanContent(text: string): string {
 
 export async function scrapeFullContent(url: string): Promise<string | null> {
     try {
-        console.log("[scraper] fetching:", url);
         const response = await fetch(url, {
             headers: {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             },
-            signal: AbortSignal.timeout(10000),
+            signal: AbortSignal.timeout(6000),
         });
 
-        console.log("[scraper] response status:", response.status);
         if (!response.ok) return null;
-
         const html = await response.text();
-        console.log("[scraper] html length:", html.length);
 
-        const { JSDOM } = await import("jsdom");
-        const { Readability } = await import("@mozilla/readability");
+        // 1. Suppress JSDOM internal logs
+        const virtualConsole = new VirtualConsole();
 
-        const dom = new JSDOM(html, { url });
+        // 2. Parse with minimal features to save RAM
+        const dom = new JSDOM(html, {
+            url,
+            virtualConsole
+        });
+
         const reader = new Readability(dom.window.document);
         const article = reader.parse();
 
-        console.log("[scraper] parsed article:", article?.title ?? "null");
+        if (!article?.textContent) {
+            dom.window.close();
+            return null;
+        }
 
-        if (!article?.textContent) return null;
+        const cleaned = cleanContent(article.textContent);
 
-        return cleanContent(article.textContent);
+        // 3. Explicitly close the window to free memory
+        dom.window.close();
+
+        return cleaned;
     } catch (error) {
-        console.error("[scraper] error for", url, ":", error);
+        console.error("[scraper] error:", error);
         return null;
     }
 }

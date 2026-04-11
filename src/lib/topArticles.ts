@@ -124,9 +124,6 @@ export async function fetchAndScrapeTopArticles(targetCount = 5): Promise<FetchA
                 scrape_failed: false,
             });
         } else {
-            // Even if Gemini fails, we count it as partially successful because we got the content
-            // or we could count it as failed depending on requirements. 
-            // The user said "skip failed URLS gracefully", so let's just log it.
             console.error(`[gemini] Failed to generate Tagalog for ${article.title}`);
             successfulResults.push({
                 ...article,
