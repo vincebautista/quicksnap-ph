@@ -7,7 +7,7 @@ const FONT_PATH = path.join(process.cwd(), "public", "fonts", "Oswald-Bold.ttf")
 if (fs.existsSync(FONT_PATH)) {
     GlobalFonts.registerFromPath(FONT_PATH, "Oswald");
 } else {
-    console.warn("[imageProcessor] NotoSans-Bold.ttf not found at", FONT_PATH);
+    console.warn("[imageProcessor] Oswald-Bold.ttf not found at", FONT_PATH);
 }
 
 const BRAND_COLOR = "#0065eb";
