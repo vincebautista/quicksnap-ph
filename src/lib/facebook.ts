@@ -21,6 +21,7 @@ const FB_PAGE_ACCESS_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN;
  */
 function categoryEmoji(category?: string | string[]): string {
     const cat = Array.isArray(category) ? category[0] : category ?? "";
+    if (!cat) return "📰"; // add this guard
     const map: Record<string, string> = {
         politics: "🏛️",
         crime: "🚨",
@@ -42,6 +43,7 @@ function categoryEmoji(category?: string | string[]): string {
  */
 function questionCTA(category?: string | string[]): string {
     const cat = Array.isArray(category) ? category[0] : category ?? "";
+    if (!cat) return "Basahin ang buong detalye sa comment section. 👇";
     const ctaMap: Record<string, string[]> = {
         economy: [
             "Basahin ang buong detalye sa comment section. 👇",
