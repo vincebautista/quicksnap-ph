@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { scrapeFullContent } from "@/lib/scraper";
+import { scrapeFullContentCron } from "@/lib/scraperCron";
 import { generateTagalogContent } from "@/lib/gemini";
 
 export async function POST(req: Request) {
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 
     while (retries >= 0 && !success) {
         try {
-            full_content = await scrapeFullContent(article.url);
+            full_content = await scrapeFullContentCron(article.url);
             if (full_content) {
                 success = true;
             } else {
